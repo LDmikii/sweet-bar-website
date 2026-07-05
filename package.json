@@ -1,0 +1,9 @@
+{
+  "name": "the-sweet-bar-website",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The Sweet Bar — dessert shop website with online ordering",
+  "dependencies": {
+    "stripe": "^17.0.0"
+  }
+}
