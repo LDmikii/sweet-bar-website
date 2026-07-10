@@ -328,11 +328,45 @@ function pickColors(sel, key, palette) {
 /* ---------- Render menu ---------- */
 let activeTab = "drinks";
 
+/* Real photos live in images/ — cards fall back to the illustration
+   automatically if a photo file is missing. */
+const ITEM_PHOTOS = {
+  "italian-soda": "images/italian-soda.jpg",
+  "energy-drink": "images/energy-drink.jpg",
+  "lemonade": "images/lemonade.jpg",
+  "milkshake": "images/milkshake.jpg",
+  "rootbeer-float": "images/rootbeer-float.jpg"
+};
+
+function itemVisual(item) {
+  const photo = ITEM_PHOTOS[item.id];
+  if (!photo) {
+    return '<div class="item-art" style="background:' + item.artBg + '">' + item.art(null) + "</div>";
+  }
+  return '<div class="item-photo" data-item="' + item.id + '"><img src="' + photo + '" alt="' + item.name + '" loading="lazy"></div>';
+}
+
+/* Swap a photo card back to the illustration if its image file is missing */
+function wirePhotoFallbacks(root) {
+  root.querySelectorAll(".item-photo img").forEach(function (img) {
+    img.addEventListener("error", function () {
+      const holder = img.parentElement;
+      const item = ALL_ITEMS.find(function (i) { return i.id === holder.dataset.item; });
+      if (!item) { return; }
+      const art = document.createElement("div");
+      art.className = "item-art";
+      art.style.background = item.artBg;
+      art.innerHTML = item.art(null);
+      holder.replaceWith(art);
+    });
+  });
+}
+
 function itemCard(item) {
   const card = document.createElement("div");
   card.className = "menu-card";
   card.innerHTML =
-    '<div class="item-art" style="background:' + item.artBg + '">' + item.art(null) + "</div>" +
+    itemVisual(item) +
     "<h3>" + item.name + "</h3>" +
     '<p class="desc">' + item.desc + "</p>" +
     '<div class="price-row"><span class="price">' +
@@ -346,6 +380,7 @@ function renderMenu() {
   const grid = $("menuGrid");
   grid.innerHTML = "";
   MENU[activeTab].forEach(function (item) { grid.appendChild(itemCard(item)); });
+  wirePhotoFallbacks(grid);
 }
 
 function renderFavorites() {
@@ -358,13 +393,14 @@ function renderFavorites() {
     card.className = "fav-card";
     card.innerHTML =
       '<span class="fav-badge">' + labels[id] + "</span>" +
-      '<div class="item-art" style="background:' + item.artBg + '">' + item.art(null) + "</div>" +
+      itemVisual(item) +
       "<h3>" + item.name + "</h3>" +
       "<p>" + item.desc + "</p>" +
       '<button class="add-btn" data-id="' + item.id + '">' +
       (item.groups.length ? "Customize · " : "Add · ") + (item.groups.length ? "from " : "") + money(item.priceFrom) + "</button>";
     grid.appendChild(card);
   });
+  wirePhotoFallbacks(grid);
 }
 
 /* ---------- Google reviews ---------- */
@@ -617,7 +653,7 @@ function openCheckout() {
   body.innerHTML =
     '<form class="checkout-form" id="checkoutForm">' +
     "<h3>Pickup details</h3>" +
-    '<p class="sub">We\'ll have your order ready for pickup at 151 SW 257th Dr, Troutdale.</p>' +
+    '<p class="sub">Pay securely by card — we\'ll have your order ready for pickup at 151 SW 257th Dr, Troutdale.</p>' +
     '<div class="order-summary">' + rows +
     '<div class="row total"><span>Total</span><span>' + money(cartTotal()) + "</span></div></div>" +
     '<div class="form-field"><label for="cName">Your name</label><input id="cName" required placeholder="e.g. Alex"></div>' +
@@ -625,20 +661,16 @@ function openCheckout() {
     '<div class="form-field"><label for="cTime">Pickup time</label><select id="cTime">' +
     '<option>As soon as possible</option><option>In 30 minutes</option><option>In 1 hour</option><option>In 2 hours</option></select></div>' +
     '<div class="form-field"><label for="cNotes">Notes (optional)</label><textarea id="cNotes" rows="2" placeholder="Allergies, special requests…"></textarea></div>' +
-    '<div class="form-field"><label>Payment</label><div class="pay-options">' +
-    '<label class="pay-option"><input type="radio" name="payMethod" value="pickup" checked><span>🏪 Pay at pickup</span></label>' +
-    '<label class="pay-option' + (stripeReady ? "" : " disabled") + '"><input type="radio" name="payMethod" value="card"' + (stripeReady ? "" : " disabled") + ">" +
-    "<span>💳 Pay online now" + (stripeReady ? "" : ' <em class="soon">coming soon</em>') + "</span></label>" +
-    "</div></div>" +
-    '<button type="submit" class="btn btn-primary btn-full" id="placeOrderBtn">Place order</button>' +
+    (stripeReady ? "" :
+      '<div class="checkout-notice">⚠️ Online payment isn\'t activated yet — orders can\'t be placed until Stripe setup is complete (see STRIPE-SETUP.md).</div>') +
+    '<button type="submit" class="btn btn-primary btn-full" id="placeOrderBtn"' + (stripeReady ? "" : " disabled") + ">💳 Pay " + money(cartTotal()) + " with card</button>" +
+    '<p class="muted small pay-note">Secure checkout powered by Stripe.</p>' +
     "</form>";
   $("checkoutModal").classList.add("open");
   document.body.style.overflow = "hidden";
   $("checkoutForm").addEventListener("submit", function (e) {
     e.preventDefault();
-    const method = body.querySelector('input[name="payMethod"]:checked').value;
-    if (method === "card") { startStripeCheckout(); }
-    else { placeOrder(); }
+    startStripeCheckout();
   });
 }
 
@@ -670,19 +702,15 @@ function startStripeCheckout() {
   });
 }
 
-function placeOrder() {
-  const name = $("cName").value.trim() || "friend";
-  const orderNo = "SB-" + Math.floor(1000 + Math.random() * 9000);
+function showPaymentSuccess() {
   $("checkoutBody").innerHTML =
     '<div class="confirm-box"><div class="big">🎉</div>' +
-    "<h3>Thank you, " + name + "!</h3>" +
-    "<p>Your order has been placed.</p>" +
-    '<div class="order-no">Order ' + orderNo + "</div>" +
-    "<p>Show this number at the counter —<br>we'll have your treats ready. Total: <strong>" + money(cartTotal()) + "</strong></p>" +
+    "<h3>Payment received — thank you!</h3>" +
+    "<p>Your order is confirmed and we're getting it ready.</p>" +
+    "<p>Give your name at the counter when you arrive —<br>see you soon at 151 SW 257th Dr!</p>" +
     '<button class="btn btn-primary" id="doneBtn" style="margin-top:14px">Done</button></div>';
-  cart = [];
-  saveCart();
-  updateCartUI();
+  $("checkoutModal").classList.add("open");
+  document.body.style.overflow = "hidden";
   $("doneBtn").addEventListener("click", closeCheckout);
 }
 
@@ -752,10 +780,27 @@ updateCartUI();
     cart = [];
     saveCart();
     updateCartUI();
-    toast("Payment received — see you soon! 🎉");
+    showPaymentSuccess();
     history.replaceState(null, "", window.location.pathname);
   } else if (params.get("order") === "cancelled") {
     toast("Payment cancelled — your cart is still saved.");
     history.replaceState(null, "", window.location.pathname);
   }
 })();
+
+/* Mobile nav */
+$("navToggle").addEventListener("click", function () {
+  const open = $("siteNav").classList.toggle("open");
+  this.setAttribute("aria-expanded", open ? "true" : "false");
+});
+document.querySelectorAll("#siteNav a").forEach(function (a) {
+  a.addEventListener("click", function () {
+    $("siteNav").classList.remove("open");
+    $("navToggle").setAttribute("aria-expanded", "false");
+  });
+});
+
+/* PWA service worker (enables offline use and future app-store packaging) */
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(function () { /* non-fatal */ });
+}

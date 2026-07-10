@@ -16,7 +16,13 @@
       "PowerShell($url = 'https://www.google.com/maps/preview/review/listentitiesreviews?authuser=0&hl=en&gl=us&pb=!1m2!1y6094282080974264241!2y8795033230289559132!2m2!1i0!2i10!3e1!4m5!3b1!4b1!5b1!6b1!7b1!5m2!1sabc!7e81'; try { $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30 -Headers @{ \"User-Agent\" = \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" }; $r.Content | Out-File -Encoding utf8 \"C:\\\\Users\\\\Legion\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-Legion-Desktop-The-sweet-bar-website\\\\f1557968-9366-4db2-a890-cea0e16339f1\\\\scratchpad\\\\reviews.json\"; \"saved $\\($r.Content.Length\\)\" } catch { \"failed: $\\($_.Exception.Message\\) status: $\\($_.Exception.Response.StatusCode\\)\" })",
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\Legion\\\\Desktop\\\\The sweet bar website\\\\images\" | Out-Null; $url = \"https://lh3.googleusercontent.com/gps-cs-s/APNQkAErL2SWVblTLv8EICFYFmIjo9gJLAM6A0jSKvXj2Wdla3wunfGxh-pmh1tqwnmAiGw5PbFWlIZ2XjqTUNA6Bh8zvT-8RxyLNq3UEyB_ENBhvr9YnxDAl_-h8s3WilyvcbAGk4GgXeKG4--0=w1600\"; try { Invoke-WebRequest -Uri $url -OutFile \"C:\\\\Users\\\\Legion\\\\Desktop\\\\The sweet bar website\\\\images\\\\storefront.jpg\" -UseBasicParsing -TimeoutSec 30; \\(Get-Item \"C:\\\\Users\\\\Legion\\\\Desktop\\\\The sweet bar website\\\\images\\\\storefront.jpg\"\\).Length } catch { \"failed: $\\($_.Exception.Message\\)\" })",
       "PowerShell(git init -b main)",
-      "PowerShell(git add -A)"
+      "PowerShell(git add -A)",
+      "PowerShell(git config user.email \"huseynlimeqsed@gmail.com\")",
+      "PowerShell(git config user.name \"The Sweet Bar\")",
+      "PowerShell(git remote add origin https://github.com/LDmikii/sweet-bar-website.git)",
+      "PowerShell(git push -u origin main 2>&1)",
+      "PowerShell(git ls-remote --heads origin 2>$null)",
+      "PowerShell(git push 2>&1)"
     ]
   }
 }
