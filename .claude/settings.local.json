@@ -22,7 +22,8 @@
       "PowerShell(git remote add origin https://github.com/LDmikii/sweet-bar-website.git)",
       "PowerShell(git push -u origin main 2>&1)",
       "PowerShell(git ls-remote --heads origin 2>$null)",
-      "PowerShell(git push 2>&1)"
+      "PowerShell(git push 2>&1)",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8642/images/fruit-tea.jpg\" -UseBasicParsing -TimeoutSec 5; \"status: $\\($r.StatusCode\\)\" } catch { \"result: $\\($_.Exception.Message\\)\" })"
     ]
   }
 }

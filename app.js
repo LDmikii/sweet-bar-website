@@ -333,7 +333,7 @@ let activeTab = "drinks";
 const ITEM_PHOTOS = {
   "italian-soda": "images/italian-soda.jpg",
   "energy-drink": "images/energy-drink.jpg",
-  "lemonade": "images/lemonade.jpg",
+  "fruit-tea": "images/fruit-tea.jpg",
   "milkshake": "images/milkshake.jpg",
   "rootbeer-float": "images/rootbeer-float.jpg"
 };
@@ -343,7 +343,7 @@ function itemVisual(item) {
   if (!photo) {
     return '<div class="item-art" style="background:' + item.artBg + '">' + item.art(null) + "</div>";
   }
-  return '<div class="item-photo" data-item="' + item.id + '"><img src="' + photo + '" alt="' + item.name + '" loading="lazy"></div>';
+  return '<div class="item-photo" data-item="' + item.id + '"><img src="' + photo + '" alt="' + item.name + '"></div>';
 }
 
 /* Swap a photo card back to the illustration if its image file is missing */
