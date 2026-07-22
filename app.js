@@ -325,8 +325,22 @@ function pickColors(sel, key, palette) {
   return [palette[0][1]];
 }
 
-/* ---------- Render menu ---------- */
+/* ---------- Render menu book ---------- */
+const MENU_CHAPTERS = ["drinks", "waffles", "icecream"];
+const MENU_TITLES = {
+  drinks: "Sips & Shakes",
+  waffles: "Bubble Waffles",
+  icecream: "The Ice Creamery"
+};
+const MENU_NOTES = {
+  drinks: "Sparkling, creamy and blended favorites, all made fresh to order.",
+  waffles: "Warm bubble waffles and our signature chocolate strawberry cup.",
+  icecream: "Hand-scooped classics and the fruit-shaped treats everyone is talking about."
+};
 let activeTab = "drinks";
+let activeChapter = 0;
+let bookTurning = false;
+let touchStartX = 0;
 
 /* Real photos live in images/ — cards fall back to the illustration
    automatically if a photo file is missing. */
@@ -362,25 +376,76 @@ function wirePhotoFallbacks(root) {
   });
 }
 
-function itemCard(item) {
-  const card = document.createElement("div");
-  card.className = "menu-card";
-  card.innerHTML =
-    itemVisual(item) +
-    "<h3>" + item.name + "</h3>" +
-    '<p class="desc">' + item.desc + "</p>" +
-    '<div class="price-row"><span class="price">' +
-    (item.groups.length ? "from " : "") + money(item.priceFrom) +
-    '</span><button class="add-btn" data-id="' + item.id + '">' +
-    (item.groups.length ? "Customize" : "Add") + "</button></div>";
-  return card;
+function bookItem(item) {
+  const action = item.groups.length ? "Customize" : "Add to order";
+  return '<button type="button" class="menu-entry add-btn" data-id="' + item.id + '" aria-label="' +
+    action + " " + item.name + ", " + (item.groups.length ? "from " : "") + money(item.priceFrom) + '">' +
+    '<span class="menu-entry-visual">' + itemVisual(item) + "</span>" +
+    '<span class="menu-entry-copy"><span class="menu-entry-top"><strong>' + item.name +
+    '</strong><span class="menu-entry-price">' + (item.groups.length ? "from " : "") + money(item.priceFrom) +
+    '</span></span><span class="menu-entry-desc">' + item.desc +
+    '</span><span class="menu-entry-action">' + action + ' <span aria-hidden="true">&#8594;</span></span></span></button>';
+}
+
+function renderBookPage(items, side, pageNumber) {
+  let html = '<section class="book-page book-page-' + side + '">' +
+    '<div class="page-ornament" aria-hidden="true">The Sweet Bar</div><div class="menu-entries">';
+  items.forEach(function (item) { html += bookItem(item); });
+  if (!items.length) {
+    html += '<div class="book-blank"><span>Sweet moments<br>are always<br>in season.</span></div>';
+  }
+  html += '</div><span class="printed-page">' + pageNumber + "</span></section>";
+  return html;
 }
 
 function renderMenu() {
-  const grid = $("menuGrid");
-  grid.innerHTML = "";
-  MENU[activeTab].forEach(function (item) { grid.appendChild(itemCard(item)); });
-  wirePhotoFallbacks(grid);
+  activeTab = MENU_CHAPTERS[activeChapter];
+  const items = MENU[activeTab];
+  const splitAt = Math.ceil(items.length / 2);
+  const leftItems = items.slice(0, splitAt);
+  const rightItems = items.slice(splitAt);
+  const chapterNumber = activeChapter + 1;
+  const spread = $("menuGrid");
+  spread.innerHTML =
+    '<div class="book-binding" aria-hidden="true"></div>' +
+    '<div class="chapter-heading"><span class="chapter-kicker">Chapter ' + chapterNumber + "</span><h3>" +
+    MENU_TITLES[activeTab] + '</h3><p>' + MENU_NOTES[activeTab] + "</p></div>" +
+    renderBookPage(leftItems, "left", chapterNumber * 2 - 1) +
+    renderBookPage(rightItems, "right", chapterNumber * 2);
+
+  document.querySelectorAll("#menuTabs .tab").forEach(function (tab) {
+    const selected = tab.dataset.tab === activeTab;
+    tab.classList.toggle("active", selected);
+    tab.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+  $("menuPrev").disabled = activeChapter === 0;
+  $("menuNext").disabled = activeChapter === MENU_CHAPTERS.length - 1;
+  $("menuPageLabel").textContent = "Chapter " + chapterNumber + " of " + MENU_CHAPTERS.length + " · " + MENU_TITLES[activeTab];
+  $("menuDots").innerHTML = MENU_CHAPTERS.map(function (_, i) {
+    return '<span class="book-dot' + (i === activeChapter ? " active" : "") + '"></span>';
+  }).join("");
+  wirePhotoFallbacks(spread);
+}
+
+function turnMenuTo(nextChapter) {
+  if (bookTurning || nextChapter < 0 || nextChapter >= MENU_CHAPTERS.length || nextChapter === activeChapter) { return; }
+  if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    activeChapter = nextChapter;
+    renderMenu();
+    return;
+  }
+  const book = $("menuBook");
+  const forward = nextChapter > activeChapter;
+  bookTurning = true;
+  book.classList.add(forward ? "turning-forward" : "turning-back");
+  window.setTimeout(function () {
+    activeChapter = nextChapter;
+    renderMenu();
+  }, 210);
+  window.setTimeout(function () {
+    book.classList.remove("turning-forward", "turning-back");
+    bookTurning = false;
+  }, 520);
 }
 
 function renderFavorites() {
@@ -745,12 +810,23 @@ document.addEventListener("click", function (e) {
 
   const tab = e.target.closest(".tab");
   if (tab) {
-    document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
-    tab.classList.add("active");
-    activeTab = tab.dataset.tab;
-    renderMenu();
+    turnMenuTo(MENU_CHAPTERS.indexOf(tab.dataset.tab));
   }
 });
+
+$("menuPrev").addEventListener("click", function () { turnMenuTo(activeChapter - 1); });
+$("menuNext").addEventListener("click", function () { turnMenuTo(activeChapter + 1); });
+$("menuBook").addEventListener("keydown", function (e) {
+  if (e.key === "ArrowLeft") { e.preventDefault(); turnMenuTo(activeChapter - 1); }
+  if (e.key === "ArrowRight") { e.preventDefault(); turnMenuTo(activeChapter + 1); }
+});
+$("menuBook").addEventListener("touchstart", function (e) {
+  touchStartX = e.changedTouches[0].clientX;
+}, { passive: true });
+$("menuBook").addEventListener("touchend", function (e) {
+  const distance = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(distance) > 55) { turnMenuTo(activeChapter + (distance < 0 ? 1 : -1)); }
+}, { passive: true });
 
 $("cartBtn").addEventListener("click", openCart);
 $("closeCart").addEventListener("click", closeCart);
